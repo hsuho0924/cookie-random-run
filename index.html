@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>쿠키런 랜덤런 쿠키 뽑기</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 30px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 18px;
+      margin: 5px;
+    }
+    .result {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      font-size: 20px;
+    }
+    .result-item {
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      padding: 15px;
+      min-width: 180px;
+      background-color: #f9f9f9;
+    }
+    #rerollCount {
+      font-weight: bold;
+      color: red;
+    }
+    #swapCount {
+      font-weight: bold;
+      color: blue;
+    }
+    img {
+      max-width: 100px;
+      margin-top: 10px;
+    }
+    input[type="number"] {
+      padding: 5px;
+      font-size: 16px;
+      width: 60px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🍚 쿠키런 랜덤런 쿠키 뽑기 🍚</h1>
+
+  <div>
+    초기 리롤권수: <input type="number" id="initialReroll" value="3" min="0">
+    초기 선이달 교체권수: <input type="number" id="initialSwap" value="1" min="0">
+    <button onclick="initializeTickets()">🎯 뽑기권 설정</button>
+  </div>
+
+  <div>
+    🎟️ 리롤권 개수: <span id="rerollCount">3</span>
+    / 🔄 선이달 교체권: <span id="swapCount">1</span>
+    <button onclick="swapCookies()">🔄 선이달 교체권 사용</button>
+  </div>
+
+  <button onclick="pickMain()">🏃‍♂️ 선달 쿠키 뽑기</button>
+  <button onclick="pickRelay()">🔁 이달 쿠키 뽑기</button>
+  <button onclick="pickPet()">🐾 펫 뽑기</button>
+
+  <div class="result">
+    <div class="result-item" id="mainResult">선달 쿠키: ❓<br><img id="mainImg" src="" alt="" style="display:none;"></div>
+    <div class="result-item" id="relayResult">이달 쿠키: ❓<br><img id="relayImg" src="" alt="" style="display:none;"></div>
+    <div class="result-item" id="petResult">펫: ❓<br><img id="petImg" src="" alt="" style="display:none;"></div>
+  </div>
+
+  <script>
+    const cookies = [
+      { name: "용감한 쿠키군", img: "https://i.namu.wiki/i/REmVBFdHOZtkqxKKpgeTe0l79af_bFLIcI-aNnAUaJNejyCoXZHJcm4SkoFcuMEIMnN_rw_DO64SZ50CegHRUg.webp" },
+      { name: "명랑한 쿠키양", img: "https://i.namu.wiki/i/906cx4VTs8SFj_rygZLFdUcwy92hdjQPgKN_wJrQbAK81T4b-7ddFDuUPXaQk2U86w0vf6bG14dbUl7eAHhVfQ.webp" },
+      { name: "구름맛 쿠키", img: "https://i.namu.wiki/i/nMJTGgrTHE9dH7rowPCM1iXFWWQ4Cw-nlfgy6JAdahLYk_8slBkZnwc3ME0NuqCieFOzg95xvRd6XTd88kQ1sw.webp" },
+      { name: "딸기맛 쿠키", img: "https://i.namu.wiki/i/PCxk7a7CzwJAstPYyiS9vUYfq0kaw2YxzbeBoUHIhCmaBdpjApZkW7X4Cp3I7CK36pyvJ3NbtMc2kor_Q4xomw.webp" },
+      { name: "버터크림 초코쿠키", img: "https://i.namu.wiki/i/jFMCO2oiHMgQpSgEgm1gF_fw1b8R3ZVGQG1_Hngq4D61xgRPvj-29iyggYyhPI8r4g4FIK1Q-t1YoG7tB_DCpQ.webp" },
+      { name: "쿠키앤크림 쿠키", img: "https://i.namu.wiki/i/oYZiMjRv_wbfGjiNut4ox57jFWpuKkKEl8X7xBhwh4t8msepb2fllCbt939mVSPidcf2bbVkZposCqOlBLFDzg.webp" },
+      { name: "공주맛 쿠키", img: "https://i.namu.wiki/i/pje6jNeQ8SxvxlBAU6lTrof0Rq9dcbxh4KZxFWLVPemy6RCtTT-dZDbB2Qi8Fnz3feRSIyF9cFgzY-szE7XqbA.webp" },
+      { name: "근육맛 쿠키", img: "https://i.namu.wiki/i/8_T_jVhize9ETNsCvUxbIOxg8vyx3hQW6xwc7PbDlJ8CSw2QlWtH_IQg93yBArTW2NWxMoXfCvzueuvN97sjMw.webp" },
+      { name: "보더맛 쿠키", img: "https://i.namu.wiki/i/BxUjy4ATIIgq6BRfvKZvpcZkDd4Q-uaDZ0SNnRfhkHyEcngYF_ncJ-Eb7hbAASLe17Xyf-nagLcXrZ1NwvSLlQ.webp" },
+      { name: "용사맛 쿠키", img: "https://i.namu.wiki/i/527KB-t27XIgMucsUPwj8fZAt9emzyNLB6zWRvVxnZNbFVhTDBoo3CNc2TbkVe543ZEJR7soFnqhVogMKJzwKg.webp" },
+      { name: "좀비맛 쿠키", img: "https://i.namu.wiki/i/VP8IGHzTXp26-MazuyYeDFrR4_HeVb2iGJn9UOku8U4f2_Ua0pOn9UDFsQOBvbQEnePeGDCCMiFRqOAWxm-bzA.webp" },
+      { name: "커피맛 쿠키", img: "https://i.namu.wiki/i/rS-fTRDX2yz0V01a_greMAA-WgF5ohNPbbNXL2LnuzfHswoF1SqgMWj8Yi9GLzq5IkMyZK0F4Bi35WUpncOILg.webp" },
+      { name: "산타맛 쿠키", img: "https://i.namu.wiki/i/RJPjlrBBEvCQvsBsmiiU8-RHL5QN7YCTjzjcw4Dd_8OaULyGIo3lfazhL93fc_38tA2lmH7PK87ifX8NwZDB6w.webp" },
+      { name: "닌자맛 쿠키", img: "https://i.namu.wiki/i/7irzJrzMS_XJ51s8eTD5C4UAjw9lpbiL7J6pORdAGfGr7TYFv9nYJ42OePjgz-7_J9_wF2IeOiZmRLmocvBvTw.webp" },
+      { name: "천사맛 쿠키", img: "https://i.namu.wiki/i/UxE3FvTaXbw6tuCDWEp3Ne5WAU64LG-_CZl7OYOWRGCW_KmGfsYfcI6_KiBCjMv_sDTXr6XBSjJjw_-h6RWSOw.webp" },
+      { name: "해적맛 쿠키", img: "https://i.namu.wiki/i/TbAoYGCv737PnIjYg2EqAUHmiDrAoCGA_o6q5p-bLrT1LKB0gb5jiQY6XD3XQYT3lqUsKjXVkZ3yxhIchKFxag.webp" },
+      { name: "피겨여왕맛 쿠키", img: "https://i.namu.wiki/i/eNnQVPNvH0U2KlMR9-uAsSknJ3p492nBbLEAINq9Rse1hsu27vTKUlxwZ_Pbtes8EVcd_hm_JwrsP15Xgtmeag.webp" },
+      { name: "히어로맛 쿠키", img: "https://i.namu.wiki/i/tX9ciYk_ahYM_I6H9AlBdy-SJIZ8fRcPmXIoqdpUuKWqWDQtZjDcL4kG6pWmQDXCQ9X93xme8WRhKoKbaH1NnA.webp" },
+      { name: "특전사맛 쿠키", img: "https://i.namu.wiki/i/mjBV8VnLXBQh8plf4hSj5hq3S_hgXW-WVLWFmk1MfmZ-9bduIXBurXNpU14gEzzneYDpDHEnlQfiRQpDV-7TKQ.webp" },
+      { name: "치어리더맛 쿠키", img: "https://i.namu.wiki/i/CBpU5myLhQd8LA_WeVonkIXts2nA87ArUumxQwyYaCVherPUtTPrryqK-j8GTAYivCc-lWmsRA9Oi5EjyWLkug.webp" },
+      { name: "악마맛 쿠키", img: "https://i.namu.wiki/i/-6J-PHyGSEWy8csOHKmIdy1TshJMRV98FN8FZ92_yYnxn-5souKOVdURL8-xx-O1a4WWvGBFR2B392LImaYjqg.webp" },
+      { name: "구미호맛 쿠키", img: "https://i.namu.wiki/i/7O5v-wR7QDlTOipmR23CAppcN0YxuS_mm_AHU-0zNFaQ690rHfecCd-YA7Lf1vemFX1vSXMjoRsF2MNff0c6LA.webp" },
+      { name: "의적맛 쿠키", img: "https://i.namu.wiki/i/kU0eKgPhen6B-dWt_CD0_LnBp-RaU894tvJprEJ7uHVu-CBvIMLz30CSHx5NwWxL_apLmfUocBTzCt2bH4zvrg.webp" },
+      { name: "마법사맛 쿠키", img: "https://i.namu.wiki/i/pxGtjEcWZmlOLVKNczV_27esRbyaVYhRBwa26K-ExfojXLZ2qEFQE429EQJ2C9-1cYbWb8MqLaJsjsD7Vr6MdA.webp" },
+      { name: "요정맛 쿠키", img: "https://i.namu.wiki/i/sSmLj-CBvwXvIV3F6X9yQ4hl4c9O7vm7lll5JjnEF6Ph22o6jVrWaE6hERbCEaAMJQ4KKZ6OQoooexZTQOsqsw.webp" },
+      { name: "락스타맛 쿠키", img: "https://i.namu.wiki/i/umtlxv-ZvCoI9p1Yfzd3Ka6pTbHWXu5R5v8EX-PggC8AcOHLA2vnSnqJYyZkuU-oE4-2Peoinkon95DtMKDPpg.webp" },
+      { name: "음유시맛 쿠키", img: "https://i.namu.wiki/i/habyLdpMgFCYDbw_l_XctjNFseuEbUWlpKdv8Kyj_x-HkzGEovKlZHQWoqhiEArI20aRlrq48rWivwE0LLuwIA.webp" },
+      { name: "체리맛 쿠키", img: "https://i.namu.wiki/i/hNVYJM7ZB0E1OmvgNd-3Rn_JTJV6nwq-FRnM-N22z7VXBjEME9ua4R-LrwA9SkdOJmyZ-8yFcMLxPEHiIxjO9Q.webp" },
+      { name: "눈설탕맛 쿠키", img: "https://i.namu.wiki/i/YGBDEsg2DDakifplD5FchhhwnwjjF53N8W7cqKp9zxChryTTZK0VrsfQ1SI4AykGeXAfm_K4twK9QM3op949cg.webp" },
+      { name: "핑크초코 쿠키", img: "https://i.namu.wiki/i/vIJAehRosCLjsTYzvag7BJbpEkGS9-WaSqNzJPAfycnYatYZ65w512x93oPrMGMeNYyMBBuanWPTSSte52sulw.webp" },
+      { name: "예언자맛 쿠키", img: "https://i.namu.wiki/i/8WMcMl9n907HEJ5GIk3AaSjTbZWHYn5ePaV-r4bMf2tlzJpWuVDKNbzqu30Q3zk3Jn9uN1ddP6cmndRL1t1nkg.webp" },
+      { name: "피스타치오맛 쿠키", img: "https://i.namu.wiki/i/dEXibdOfJry0tqqVca7xTtsK_s1OIX7_CQH-D59bBi967b8dPy5B743e2unBG8zEHnii_synxr5LdlqCL0Qsbg.webp" },
+      { name: "연금술사맛 쿠키", img: "https://i.namu.wiki/i/7BIG4Mt7p6uUoELZYgjsRW6e5RMmpccG3Iuw--CiwL4Bl2r2G2lHPmzOB7Lbmg5axo0F46l0G4KVxb4d3B2bOQ.webp" },
+      { name: "뱀파이어맛 쿠키", img: "https://i.namu.wiki/i/EQEpjunD1MdrIHIOa5c523xRvujWdprH_beOSO5xmb0Ftd5W6riqWNEger6AF23n9j-512vh7hq3ns3Y4ZHqfA.webp" },
+      { name: "풋사과맛 쿠키", img: "https://i.namu.wiki/i/-PHh2BzH2sll2LIpLsnSJ3hIHmoZrB-hqbhP95DhTDoKZo3LdjuZTynl60Ls-roQK7g4AQkOjRUoVPmOsWNBkg.webp" },
+      { name: "치즈케이크맛 쿠키", img: "https://i.namu.wiki/i/O7td1eguZ3E0-pPfhvc9_kOhG-Jn8SoVckuWsHa9LedSIgmvf4LcKxodajIZTzUQwXVpDrrLDQp_PmFU4PFNMQ.webp" },
+      { name: "소다맛 쿠키", img: "https://i.namu.wiki/i/bv0RgE4OH7kYmy7K6VuqsUpvf3ycKjVr7Wa1diK9nsGf0j1eiAexok4yQGq8bR7120CC7qOxI3yI3X2s3POHbQ.webp" },
+      { name: "탐험가맛 쿠키", img: "https://i.namu.wiki/i/ohmoUfbA1_-Jdvvx2Cf3ALjSiqBjhhXyZCj0MsIDtQYbt5UkUGvupwPL9bXv20q3O2G-gXtyOhmYjfOZy78gBg.webp" },
+      { name: "블랙베리맛 쿠키", img: "https://i.namu.wiki/i/uSpcH6lMhuiIpCEQD6d6MHvuzfL1LRFodEXGREricha7b8WWc8E7nt82RmsExNn_2vSOuD00Du-ifwJFKgCa9w.webp" },
+      { name: "키위맛 쿠키", img: "https://i.namu.wiki/i/sdnCv56lVz5r57W6l-o8_3JmSnAFBZoyfoGryEX-RRWI9QwPVZUaGPZta2CrTQLNPBazcRBxkGjl1-19o0iijQ.webp" },
+      { name: "웨어울프맛 쿠키", img: "https://i.namu.wiki/i/zkgLlexxfn2i3bpxFTCC1bp5_efLtS5mmOLY3T8wAJNugz4VaVaPySm0O1sxSpQJs7M37AepP0VOnnANaMh7sw.webp" },
+      { name: "민트초코쿠키", img: "https://i.namu.wiki/i/xfyMxMRPJL2HKhzRY4XbJidTLupEz0YmNBT8mHpL3x8_v1gWpNa16M3uZttHICMmFsANIXNk9YA0u_2xxp5JGw.webp" },
+      { name: "코코아맛 쿠키", img: "https://i.namu.wiki/i/P8knU9q0t92iMe4b24MHlTaCzayr_wR0QsHLJPnoj57mZEWtguOuEpH7l74ULxWtMLdiaZv3YX7kAncjgjc0Aw.webp" },
+      { name: "홍고추맛 쿠키", img: "https://i.namu.wiki/i/rzl7aOJVJAo69HxE8HhYxjBRZbvTcRhrwVqJC0Fihn-_Nb-kCDjJIeKN58OqbYRbMAurHKTOWo0-9z2zGbRVFg.webp" },
+      { name: "슈크림맛 쿠키", img: "https://i.namu.wiki/i/b8o9b8ivQg8qWORdSNwVGcaytREqxQT1stykZo3hpZsV9t8nE--99IiWHKwgavgJhdcFG-HPVAzJOhNNtxgOGQ.webp" },
+      { name: "버블껌맛 쿠키", img: "https://i.namu.wiki/i/rP6ZFrIUX0_GRyc687JYj6oPuwZVx_7raj8y5HZJH1gOYNAzr9Vyjo_klUc3DaSjkACgY3eol7Be3QnvVd0TyA.webp" },
+      { name: "벚꽃맛 쿠키", img: "https://i.namu.wiki/i/fp1_9gRZU8ljS6OEr2Q1oG58Dot81etQ3oMyFbA7P8RCl-pMCHHA5SnN_YQy6lOMKSriQc8Hk3V5jFM5jC0p2g.webp" },
+      { name: "레몬맛 쿠키", img: "https://i.namu.wiki/i/kpfv8NxH6JZ5ISHrnZSpvHUgVA2Pvkcn5_JUxcpJsNEz0efNvZJxbf7GqG51OApGSQKXRKZLTmLMGVa-0Iic0A.webp" },
+      { name: "오렌지맛 쿠키", img: "https://i.namu.wiki/i/7wu_As0BBsIOwi--KjXpamiiNwXY5hm0sLl0rE3mwsNZROkgJeuYOqx-C9zKRt3-Xy3pDg0PFOrS5qrpWnSoSg.webp" },
+      { name: "라임맛 쿠키", img: "https://i.namu.wiki/i/KPCBaQcMZUrSfh7SOXIiEhwkQ7qBvyz2biHpkWx_YIr0kzXZFUlSRTwPO6icvsiSK48bH0CgqBHH3ANWsyzfGA.webp" },
+      { name: "박하사탕맛 쿠키", img: "https://i.namu.wiki/i/rJqQzuX6gSSfSVk4AgCLYCQ70eihjde7MiwNYpkUYuwFxYok5BNyEQUbb27wOmCkVFMb_9IQnY-olUILyMFOFA.webp" },
+      { name: "대추맛 쿠키", img: "https://i.namu.wiki/i/3KMf0ybR95jRdw278ekmfFLlRSc3BFEB3c6bVhwE3KtHScYKbQVqiSO9MfeNMmEtQZoCaxREwavdis5r2WiylA.webp" },
+      { name: "복숭아맛 쿠키", img: "https://i.namu.wiki/i/VV6nsl-whIIO_gCtfF8Qeh_1PswRv6kwl10UxXSsBKGvY3ISLXH07I-b0nH2aHs3KwNWsbAXB7MR0q2jvDzFdA.webp" },
+      { name: "양파맛 쿠키", img: "https://i.namu.wiki/i/ug_0qDkd6I8LdCmz9o7-_DNVTktqNN2zTfbRjUnPYsFpCLYCzPfiE_toFZ4dYJIsHS65CnK-kUYCJoHl1m-oFw.webp" },
+      { name: "시나몬맛 쿠키", img: "https://i.namu.wiki/i/WmRv8C_uCV94eqmL50ZQvwLmEMW1v49VPbDCIpk4CRMRdiZpd6h-DyCISJBvZv_ou6DYZ7Cl3UsgfxjKStnPHw.webp" },
+      { name: "마카롱맛 쿠키", img: "https://i.namu.wiki/i/8m90-7MNXJuCIwq3DnT_pg1xs2rbRDklgFzti5njF-rUDKs2vjrPQMHXAIusPNd9NSUKtLbxNyYrrX7_9KMuvA.webp" },
+      { name: "단팥맛 쿠키", img: "https://i.namu.wiki/i/Pg4ShvB0lbRoDWARt1imUzsLgRFuz9p_4UhCDsT2r87yDCc8V6rVZ6UVFGsSr7gfmfg62L9oGtdKTyv2j7HEQQ.webp" },
+      { name: "화이트초코 쿠키", img: "https://i.namu.wiki/i/TBsqZWy69XaeGBRCfqACwD55n5Ov_nVYGEWbn0OzaUHJRclfDDyal70e2ZlIrG5hdGupZTBfm_PrpYAQkU12_w.webp" },
+      { name: "허브맛 쿠키", img: "https://i.namu.wiki/i/rZMNXdm85Geu_aGVfAnkI4ihpvcKB1ZHUE0KB9a5akiqHRLn80lTrSO0GRBLNYYLBx-0vQ_ZcrzaaaoxZ6ST6g.webp" },
+      { name: "다이노사워 쿠키", img: "https://i.namu.wiki/i/fkBLpt8NyJPZpv6CTAViMRpGmHmw6SYvuadou11ha5ADbN4ntdsyWbYOm-HaEFCQ3jVpvhjfkelKTxgauizl0g.webp" },
+      { name: "솜사탕맛 쿠키", img: "https://i.namu.wiki/i/jLjtSRk9rd23aZZL_OeeyeaIwoh88yo58tRUtErp2DgQ3aX4-Tg1G24elocUxqEi8nbhJPsg7nBURU2DT2uJMA.webp" },
+      { name: "롤케이크맛 쿠키", img: "https://i.namu.wiki/i/4PqnT4LsSRKbv_LjZ5JKEEhSNU392CJ_SG3DtMGlDn-8HWyRS6gzcEXUfa_4bx_vNlXeRW71fzNqO6KacF6pgA.webp" },
+      { name: "바나나맛 쿠키", img: "https://i.namu.wiki/i/4HhfNbdKvlmzgv5eCZuQ2RUk9rDNmt4C6-5HK61Bk6ePdyFJeiRi5gBegaCmT2yuRge83MoDPPpcPJQlfrBy0g.webp" },
+      { name: "펜케이크맛 쿠키", img: "https://i.namu.wiki/i/Pphfsv8CPqoPktye2bsZNDqUof8kd5I6H0LnFnuMvdWyUCwRdI_EaqRb5oEEJ7y0grQTmax6OVN1OmWRWSHRdg.webp" },
+      { name: "달토끼맛 쿠키", img: "https://i.namu.wiki/i/c1spLlIQOicNwt9b_4ie0IWiGfRDIDD_e251viodF3TZ-6LXG8jcwi7KVzMuMZz8wiRUnUoAfmnzc7Kd5oE_2Q.webp" },
+      { name: "딸기쇼트케이크맛 쿠키", img: "https://i.namu.wiki/i/k0AR67i8FR2J9w_oSic3JnuLKko1kFmTHIMCc716Po6asBPl8gBXxJcJu9ywLPn7SDTbervDOV-pTsMCwhpBjUMwAucLRbcBnB7URKd_ub6GbJi0GQv4PnmJ9Qon5uAvMKnFnBzlUzszACAC2bfGCw.webp" },
+      { name: "굴랍자문맛 쿠키", img: "https://i.namu.wiki/i/1KIK5Cg4JOaq54F2K5BZQD-2c7QmZaKwQ-C6GF4i3iT_qVGacqexGPSFwPIg0IxOSbDhZjcMGbMcFtOw32GY1w.webp" },
+      { name: "카주카틀리맛 쿠키", img: "https://i.namu.wiki/i/yDW29BbiMnDWcBQj6XTUS6nr-0LbcrfNZ_-79qY_dDjS7J1kXtr1Mwua_TmW9j9WZN6MFFU8p6dGFOjZmh3gvw.webp" },
+      { name: "멜로우버니 쿠키", img: "https://i.namu.wiki/i/yybQlVRyKilMpE9h8qvYp5eQwNlke8XkIqwoKEl4Kamqb4tVxS-Za6b-DaOxQibhMF626lew4sK0MM1HsYT-2A.webp" },
+      { name: "오이맛 쿠키", img: "https://i.namu.wiki/i/xt5ShkxegkjbnizFWdS8Ta7AvvYAAtX36y5LnOnnPktIhfysBYazp1XLgUobLKQ6w1vk_nfoBo-DZl9gOaRk5Q.webp" },
+      { name: "식혜맛 쿠키", img: "https://i.namu.wiki/i/DnkxJF6WtaWjXzU3V7BYi4aANy_wyA-qDUoQSlQOTwhmhxLJIshLHJfb9V9PfqnlZXM4JdSjUWHuBMbLeyKvvw.webp" },
+      { name: "수정맛 쿠키", img: "https://i.namu.wiki/i/Bu5BAJjVwtTvMuwJ-hDD-V3LUINeK5OWKqcXHyVz5p_p3bWbQka3pBnAwAK0xEUnZV9CfEVSuLAt2ptbJrE06w.webp" },
+      { name: "정글전사 쿠키", img: "https://i.namu.wiki/i/_exxrNSd1n5y5hxSXq3V5D0RflPlcCNF8bZj4m9I6QSN722aFNy_4lskcp4Alc-E3dBfghkyPNlaGZt3SW09uQ.webp" },
+      { name: "불꽃정령 쿠키", img: "https://i.namu.wiki/i/7_eXTd5RrE72SEOGZ_FlROFaifJENbv3GNr56fCIKS2kwQrPf9D3fOwaZM0p7ghsFRH0RHhUJlXYxvQUPLeN1Q.webp" },
+      { name: "달빛술사 쿠키", img: "https://i.namu.wiki/i/8ME3OMJgqdu1bFYgt82Z9dJluLuSl4A1zfUWKP6HTwg89ggSufpviUcztiK-uUWav8UlpJOwnRMIDlmeKZLVEA.webp" },
+      { name: "바다요정 쿠키", img: "https://i.namu.wiki/i/9-eCPQk2hKchQBNAZg-FzOP9EgYY6_DMHl3ADyKpZ9WprVKFTrz-0aDzK1oTdcaIErHxrPYvuVT0Phu04kDcAg.webp" },
+      { name: "바람궁수 쿠키", img: "https://i.namu.wiki/i/sM87LFuVi1Hr98JrufCI_zyrwC4tyts6diCYYklkMqZGwwNy0EUQzPqJUAIjnCzA2Xe5VkbenZt0Tb4oH3PMUg.webp" },
+    ];
+
+    const pets = [
+      { name: "초코방울", img: "https://i.namu.wiki/i/C3zBmyxsOLB0LZRYWdY6iik8QnCEEzJeGnapCKLHFBvXGqt9x-f3TDMG4KAmXftm2JKJ3fGzb1xOCb4E2M4-WQ.webp" },
+      { name: "치즈방울", img: "https://i.namu.wiki/i/ghF9CRtNOt298Gn-I6JdWGAP1HSoA1nmJVL4jy_NLdhYYSZJcT_NDqeAGqoHIQ-gozB4BW3ggIUiMKn_QZonYQ.webp" },
+      { name: "구름사탕", img: "https://i.namu.wiki/i/kaweArZpZAkQnHm3SpPi4jlqjCUs-cbpkxw0jNqWImbNvl8W32aOphiej8bktQAe5n59y7RsTvThMfl-Rd1tHQ.webp" },
+      { name: "산타양말", img: "https://i.namu.wiki/i/w6z_Pfe_uMP8BiEPPp2QADr-EmBFobpdzAszwz346HjZr-hEjSPsUNQ0BiTTP88hol7s2_zCEaBVFwb2PBRXjQ.webp" },
+      { name: "조랭이젤리", img: "https://i.namu.wiki/i/hd_HgdG6s8IHKC0GP6ESmQdzErgoZpbD1CWw3qV0Qeka4s-ZF2aPhmg3FGDOpJz3AINiZLWZLVdzafZDv0gyYQ.webp" },
+      { name: "좋은손", img: "https://i.namu.wiki/i/J-86NQgL3I_Z0hRB6q6Ozt-DuF2MpbNTjscMm4Mxhwxu78UecCJXertOVBcVTrM1-v-MgJOEHrY4_MONkTA7XQ.webp" },
+      { name: "뭉치유니콘", img: "https://i.namu.wiki/i/X8a5rqGw7FzXsrROCs1KT0QFNClp2RBxebP0s3zWiAIuaJTp6SWO3q4CcXFYCReqPvU6ZuEzWyenN_8Ui5IBOA.webp" },
+      { name: "산타모자", img: "https://i.namu.wiki/i/ZXWXDiLquMt53dDXiDlJJBIFYAlEWGLzpoMokw3ChAfYG8eCMZz_UUu_KNd1XOMI4StcCbNB-rfYQMTFZhod9w.webp" },
+      { name: "생크림 모카커피", img: "https://i.namu.wiki/i/efGUd5kvuV4MZlC5N0Nai8PTdb7mqdoJD8njW0YD-VgPr2rDRiABXUXRb5qibGYvHuaZXnDQX9tsgRLiUT8oFQ.webp" },
+      { name: "쌍둥이 덤벨", img: "https://i.namu.wiki/i/ySxhXC56-fbCG_DdqI37Dus4CMUeQJSDEgXExLjlBTl7kg7z8WHK44FZD7Jj1VEAszQzZV0p8yKo786InOLteA.webp" },
+      { name: "포근실타래", img: "https://i.namu.wiki/i/2aZTpFQTBUcQIF-HJxWtlgMWBCqRQ7zZbwC8XnLG8PGa8XDkERKqW3iXmEEIEk3XTQysxV2wDWWyNsOWSyFuEg.webp" },
+      { name: "안깐 마늘", img: "https://i.namu.wiki/i/1LJYrwMWcAFR7LAob8kR018wFFfCgZ4udQYqPZwsQjc4kdlIX54H_-RyDhqeNrJp24RruGXAtwMm5zm_POm3Uw.webp" },
+      { name: "테크노볼", img: "https://i.namu.wiki/i/6-2oRzniayFVxIQIRQBDEQqq4kDNYDah-NSrds431NJeHWu2UXrtiOT7DN1NQCt8gClKrULF7KKMqA8dVerUeg.webp" },
+      { name: "럭키다이스 형제", img: "https://i.namu.wiki/i/sDAnpISo-mr0njylIirX92TwcyCMDeEfgAPXhVOpRUloZzWt-2zh1l8m9vmNEqSwyCsc-Y5yLrccOYtIuANN_Q.webp" },
+      { name: "브레인껌", img: "https://i.namu.wiki/i/DeCoCVv2UZpQZsdkKFHKl-IQcWojxkJ2EoKU0u9Sg5g5tebVQLpAjHmiHzsCkQrEVpvSfASicb2kdSoEPLVwWw.webp" },
+      { name: "용의 꼬리", img: "https://i.namu.wiki/i/X-9Gehht56lxaOStJ8H6Ari3OTOxT9pX1WkerOCLlVdfrn8qBQI68ToiCAbcthrxS0tWowzjm-XGf8jwcX9TMw.webp" },
+      { name: "천사의 별", img: "https://i.namu.wiki/i/6qcb28N-kOmjNq3Fdj5YnLePmiginAhMSBM-q4oBoZkQNp3SjxLcCLRwDki0XhC65DSG4JbB_-ZDyUNxjhcJuw.webp" },
+      { name: "플라워콥터", img: "https://i.namu.wiki/i/8ruFT-eVA6VuMsDpDuyeKZzLIMwNh4pjl6SzZTIny4uRuUtUK1aSbfc4h12RGXSamaWMQc8e17cGtJMWCzELGA.webp" },
+      { name: "빛나는 럭키 호박", img: "https://i.namu.wiki/i/dSDLbc6ZZgxIUGaTB8UNERwuJynkcyxsmeYktCOhH6QiSTb93x55dRn0vKupxoiGTS7wvUYkrhLHgTM4gMrBnQ.webp" },
+      { name: "공주의 장신구", img: "https://i.namu.wiki/i/3Uzp55h-SkL91b8M10zd7kfY8GNN_N61CCCe0AaazxIJoGdHeXZMWyxb3WEFEpTaS0Bx442a0Aqwxsoq6YGLog.webp" },
+      { name: "꼬마유령", img: "https://i.namu.wiki/i/2fGAhRviNyvd0aawmmY162A0U1hlQXYUraKRzYupCvA81-Rc3_Oa3I2o_hvEBx9ofWBVuBsXDBsCsEZKVzUDRQ.webp" },
+      { name: "해적의 폭탄", img: "https://i.namu.wiki/i/DjOSPdUjLpaED5fPmAFqd6Bh8L6VBy95CS7-aYZXse5c2L49AtDIGKwnvkj61jcM8kCS5z4jRysWWViXt2E3FQ.webp" },
+      { name: "눈꽃송이", img: "https://i.namu.wiki/i/zRC_kkaORh1tCYHYixfzacLVTE81LKrW9_Uh2QX-1wxIEvgcnnHCAX1qanQXDwR44wcQ0x9di8rjy9oMzicVlg.webp" },
+      { name: "젤리코 큐브", img: "https://i.namu.wiki/i/DKB5-8z7uJ7ZjIUyxmQYbLYpqQvPsFh070HwjFyHIYREvxSu0gjHphb5jV7gfJWp5e66h5W5of8weTnynMfTFg.webp" },
+      { name: "건빵 보급병", img: "https://i.namu.wiki/i/C_XIopNE0wUXErP251YmfJ6K8d5WQtvKfrtJMbaTGpjJDkLaMjya2rYwJ15C1MaCTj0RDoKK6TZnhyQWxsqaEA.webp" },
+      { name: "반짝이볼", img: "https://i.namu.wiki/i/tULZG9i0-QP6b7Z-1XnyO_U772F0X0IZJEWUOLPzUvZlM6C11Ajyk_IGO3wxwrQdz7t0mVU_HJxFtq4uQpLspQ.webp" },
+      { name: "황금방울", img: "https://i.namu.wiki/i/sm_0LY8fQYRr2K9yG6JtRqAUCqyQSgDIrpge6uJYotnqfUU4Fx6Zzjqp6Uia2NvQVl3Z88p18jQqQr7VTL9yag.webp" },
+      { name: "불꽃박쥐", img: "https://i.namu.wiki/i/tX5wIJyj1y9cag4sYIYk4qOEH4aejO0Jor-bDHYfR_Z1vhRY9B7Dc1xin94g6FJJEjfpNGc9I27odAmdkBMJ7Q.webp" },
+      { name: "바람이", img: "https://i.namu.wiki/i/Z2NkjMfPqT-mMTJSVbponeCdCO84jrXDZU3qP_1tli-KzydOM8JzWfCULqqEpP4X8Bh1H2-xSL_qK5_UdSxpjQ.webp" },
+      { name: "여우구슬", img: "https://i.namu.wiki/i/3lOgC0mxYn58c0Tzj8wy3ryPEq-v7AAoeMwoDFFjIHT2AFbRTEopa0-Eiy57e89-WTwsJhNCAxLGOjmvzUb6Rw.webp" },
+      { name: "마법사전", img: "https://i.namu.wiki/i/8zKeUGYDeSkeq_2gsM8xZsMC89C8Gr1p5u4N7M36CnACVUdPY0AJEGau5yH3gPuRKUARjRNm4O7L0C8V8oyP5A.webp" },
+      { name: "꽃봉오리", img: "https://i.namu.wiki/i/GTfbO747NAQv3IuGwVrvcM8NzdWq0L-EihsOsKUULf4ZKtjW-8X-_NVqFuAEYeaQeS9Yu1KMArtbeokS1WpD0g.webp" },
+      { name: "스포트라이트", img: "https://i.namu.wiki/i/xzd_PYO6SWvsLhvRh3uT-_Qy_XzpdG8Wp2RurQ6HxJ5Id4AggRfquvTRbPknv8h4pUOKGuhX_k-3agEbkmUb0w.webp" },
+      { name: "로켓폭죽", img: "https://i.namu.wiki/i/XJr2c2rmNQozt3hrQhXnV6AIzWYfbar14MV4yYIkuuuUsjkbVoxW_idy06azAR0V-AD3PQRt9D1YJLLDiqAtgA.webp" },
+      { name: "통나무케이크", img: "https://i.namu.wiki/i/a_sFrDnyRu3pL3bPWVMXZCFJzM-mkwXnjmCpw0bOBpu8acrLL5YoujBzBtwL63pw5O3eng9yiU6Dtn43X79rPg.webp" },
+      { name: "스노우 글로브", img: "https://i.namu.wiki/i/zKz7us_xMskx3wahibRlP35Fm2X641pAtbJKpHPu1iMroeXOOFfuF7kfXedI87wVAV9jfoQMjHrRVSkOQIjvpQ.webp" },
+      { name: "복주머니", img: "https://i.namu.wiki/i/tQcaodvTpfjPRZhJwRRhF4Uv9mAOjEqcQuLkdS5iEKFf4kXru0EYOZXFS1Z-zq4rfYJE7IKDrkY5e9PZOHnHtw.webp" },
+      { name: "핑크캔디", img: "https://i.namu.wiki/i/2fUjRIO0pCrAGy2X4Shg9vG9BBBmmWPgM69OqgOLHLjyMzovzyYKu2YVi6DI8-gJBUNywWZAPnJ-jSybe8AZxQ.webp" },
+      { name: "보라보라 향초", img: "https://i.namu.wiki/i/W-H2jbHAJHnB2tgBtVU-PBreCIDy_dVy1GtWQukhzN671iblA9fWFVSNrK-N7b2XLeCevi34CiZf6WujW6Mc4A.webp" },
+      { name: "반딧불이", img: "https://i.namu.wiki/i/wexogkh4lIAHMs18WZsOhayTrJMPzliYY0-LslUsdMjAG8iK1G21nu8iCyws1vOLR78XSkM55QloVOhD-XxF0Q.webp" },
+      { name: "젤리저울", img: "https://i.namu.wiki/i/RLtv3DJYr6gegbSltWQ5ocxm_3d74pku0-L-VMaJD0_dHLP7QQnlKu8l8aPlj22ZUsBHk1NKOj9hLZ-MbebVig.webp" },
+      { name: "코인저울", img: "https://i.namu.wiki/i/bchFv-QP-7yjipO0UplEEMdTBKn9Awe68v05ZuQKHFbzJ4LyguAJkC_sd35UAbeG6coO4RR9BCOmmriFP4ZVNg.webp" },
+      { name: "참나무 주스통", img: "https://i.namu.wiki/i/FQvzF6YZeLSxso8GW4AeDfEMf7Z3EvoL3acpgQME9s5U575Xw5WiQSOwjPe6BOHa9qz1GRFan1XUwCmHL07u0A.webp" },
+      { name: "토끼사과", img: "https://i.namu.wiki/i/fPvpwIX7TlMnTUJx7AyQyxgSXLklnJILf1QN4q5l_BH8Znp9XO2xagRIEL5wloYoPdE_vm0A8qnphBA7AMss4w.webp" },
+      { name: "치즈뭉치 고양이", img: "https://i.namu.wiki/i/i_F9F1YToY5U5d5D-pHEENWzLf9bGabxiLB6ToZcfm-SomTvbJeAh4UY32d0m7iohJFQq3jQN6h6CbizObco6w.webp" },
+      { name: "조각레몬", img: "https://i.namu.wiki/i/b1qYhZWtaf9xBNQdv4eSaRH5HZ4loU98Dc3cjIYCe1YkJ0XvUk7TtSdCgBbSxrZnXXXAVcvGmohfm73-vkFAKA.webp" },
+      { name: "배낭이", img: "https://i.namu.wiki/i/u1fttAcQyoPRRRJsVUFMS-jHS7suZftM5UVNxkdRHbYUxInjRJSKAFvMjC1x5Clb5MWyLQ2SdDZB6rMHs67zmA.webp" },
+      { name: "집사 유령", img: "https://i.namu.wiki/i/noHRRC7eo_7s4ZFjHRfyNab4_BafPSnf_2ROaJuzTs_OUMrG_AJDVDTk1HtAHu4vIu9AzjyksGbH0lGN2D1TYA.webp" },
+      { name: "키위새", img: "https://i.namu.wiki/i/XEchpnbLzXtDSRwyZYM-2Y30mzAPvbuLZPcbUhmjcZMUrbghrIhkq-al9_eAnI0qF4QwZJolFLG1bdNjzuzebA.webp" },
+      { name: "털뭉치 멍뭉이", img: "https://i.namu.wiki/i/CM3-UZc8w1f6wIWWhZuWqfkjgxWZVvr4GG_Jv3GeT9FhQsgV_MU-CDXQwnAyO5UdydOXCWsf0oCO2RxxrsGDtg.webp" },
+      { name: "미스 도레미", img: "https://i.namu.wiki/i/PdIJAhY-PRRaevbEbYc3RppusjlYyhfL1QjkSA2wzj7_QbNmIxd9hzU4bZsw8nvSEoFv8t6MntmsZkuU6vkpfg.webp" },
+      { name: "미스터 파솔라시", img: "https://i.namu.wiki/i/ZL76pPeW0eavP5noIrNI1z-lQJpO89jMnveyvmoU9A9xpluB0FoM3GvJyANSAdEF4UUeyWGM2K5EhRecr8uKaw.webp" },
+      { name: "마시멜로 햄찌", img: "https://i.namu.wiki/i/mllkfYun8OMEGPs09BPswcGb3P6ZOUAu0GOlgSIhM0vl-pYCA_YwkE2eujaOr0BxnbP2KGWZlYxhnbN02VB5hw.webp" },
+      { name: "파프리카 샌드백", img: "https://i.namu.wiki/i/FVlHzNo0SNqlR87o8qbgfIZVQIg2PZsWuqT1J_XXGIOp9c7bqXWy5d3SDgkrNOfqxU7lTvYOVniLBOZ57qK1VA.webp" },
+      { name: "도토리 부엉이", img: "https://i.namu.wiki/i/NtdQNt_fPfBSMf8yV6SD2droodaBryM4OvOAY3bsIykkAxRyfBj94Z14xg26PIzSjg6C76xi3MIZpd_mrZdy5g.webp" },
+      { name: "미니 잭슨 2호", img: "https://i.namu.wiki/i/TGIkz12q43SBZhq-zCB51ABbtWJRbZsikrlszRftd0QW-CeydLCFcUNv_3Eyq1TgGwVWAhey2PzzVX4cm1trgA.webp" },
+      { name: "홍차 찻잔", img: "https://i.namu.wiki/i/T8P_Jc_e21UM4S164iBl2NUmZn_pe-KTnVJ28YxamDe8gXUM-BquN1c2DTXiGORlf0SkQMKPj_B8kPR_UndNkw.webp" },
+      { name: "레몬 전지", img: "https://i.namu.wiki/i/HxcP55nZZVghxz5rTCQMxwZ_gk4w08l84gtR6-S8L1CR6ikv34onvTxVMaWFPedWSNThki7CzC6y3vW_xPiAbQ.webp" },
+      { name: "어린쥐", img: "https://i.namu.wiki/i/0CKiag8sD7gnf5_phEcubKimC39AzpKJ1R1kWuFtyPbXkrFqNfPUW71y3s60R9tGj0x40wa0VGwZ2zvBg8tWxg.webp" },
+      { name: "백금방울", img: "https://i.namu.wiki/i/r_Lv_PmPFzruQeeSnv7vhfSMDB3Iws9Zx5KZdtj3lAkU4AAs_FaxjEsFs8e28RbJtr551CoOpjlbk3SFc2Oe2A.webp" },
+      { name: "미스터 삑", img: "https://i.namu.wiki/i/LJSDrsr-oU_RVYW9eAAB1LXH-DR6ltTF3HeehXdAhOOcAsVmapiYAJdij5hcrF4CvTCV2yPHqYgdGB1J8GxI6Q.webp" },
+      { name: "종이배 선원", img: "https://i.namu.wiki/i/yVAoaXycO0Oz-_jH_AWXB5LWpfLcHckACTSXnBsvNU5QKQqKLSDK1kzKrQU5SCJkhynjKZBtaxdVxQfnEW20pw.webp" },
+      { name: "판다만두", img: "https://i.namu.wiki/i/Y_Ivxh-SoYIjfOtUrUK-7HlOpCSrmzKCM3fm1TYWtN47BLZkyLbHua6gNQ0T2OAd8D4Faa0qY3l8poW8spiEwA.webp" },
+      { name: "식지 않는 찻잔", img: "https://i.namu.wiki/i/j_DKkFr4YNFevwwNarCSXBd-dMJJ6qlMYY1C0z_rJUy_V_Ra83Db56xU2vHk4MJvNgpjlkY6HEUDS19RHflviQ.webp" },
+      { name: "양파 물고기", img: "https://i.namu.wiki/i/kTw_eIqcrS9XHP3aej8rlPe1AJMA28RTx55yk_9gWsORrwY4kMgeOSRVv4gIMHw6kIVebdv5G3dhuLQzORNzoA.webp" },
+      { name: "시나몬롤 토끼", img: "https://i.namu.wiki/i/AdEi75u22WHdG9JQAnRYZQ9GbYrt6vzkfho8JSZHsLCugQT_wOCEgEFQT1R2SfQZFBfRzwvZGDwf33wRpu_Nbg.webp" },
+      { name: "파도방울", img: "https://i.namu.wiki/i/3oKoIa4o1FHyvDP7fJ7uHgvV8gKnRonFdpX2qbOi7vXKpGTAnXVscIG6_DJs3V9xDMSaSJI7TWzikqOdEzmifg.webp" },
+      { name: "캐스터네츠", img: "https://i.namu.wiki/i/KHPl_Fv_8u3JmJ2ba-PS1ZOurgzWABa2jKTW8I7kZbqwhRjldbUvQqFkqStTxaCMbF2F5oD4G---hEMpieCkTg.webp" },
+      { name: "찹쌀 하프물범", img: "https://i.namu.wiki/i/HfoaCxQm8IF303_xcJHMPm3--6cMre4eyYbzq5HPoU22TQEs82Iv_V5qcJJtcgA9Sihb2ZeiZGPs7lAtlkC-1w.webp" },
+      { name: "회중시계 심판", img: "https://i.namu.wiki/i/u9k8I9tJhrpmG_LB5Q-RTWQmL4IH1J47SMvkBabe4Pls-XWJAQYmcwafD18ZYbZ5XWszJFkeNPayJBqCUbQ8LQ.webp" },
+      { name: "허브티팟", img: "https://i.namu.wiki/i/zG3_GvPxPqNjIJK-iEcE7cHR8qBuM0MkqSCoXjSF6-9-SGAIto9obOncCfhmabMuj7iamOluLCpHPEMj8aKxfQ.webp" },
+      { name: "팝핑 용알", img: "https://i.namu.wiki/i/_c1y1eGo5Hfie4zMBm5Z919i8o4NOT6WJMtQwiQ8du3L1_OBCpQXQhiVk4Q0erpXTrcL7gXjy9bi8ix1Fv9syw.webp" },
+      { name: "솜사탕 비둘기", img: "https://i.namu.wiki/i/HOkoMuYMfiL4KbLKCoCVOXHgiLW7ikSJmhwVFZMwhfMfUz0XNrWG4nSYVkwWcGQVvpYrfCC_PaUWS4ANtySbHQ.webp" },
+      { name: "라이트 형제", img: "https://i.namu.wiki/i/sQX-mRcgRXEZDYLzWMVOk2O7WuWk1WIy86pV8UNxZgcfAmATAbPDaw3zTzm2Q9LnpDH_AJoD47oUCQiBSF27Lg.webp" },
+      { name: "사바나나 사자", img: "https://i.namu.wiki/i/BT3I9Tgvsl_fWuOCaS5jAVuYkKUwxQzxx3MzhtMTtgf_LOXJqrhbTB2BFANvzkFVztvpiij5N9_X_OmLxfPr3A.webp" },
+      { name: "펜케이크 원반", img: "https://i.namu.wiki/i/VoSmUY0n7N1nwz3ZVN21OuQTvGK2AwpWF0yUftL364jAF-seikybiKLJoTm36usSU2GnTQoYWjt0Qe1fcW7ZOA.webp" },
+      { name: "달절구", img: "https://i.namu.wiki/i/yzw8m7p84zA-am26Wk2mr_GFFl2rX6C0tTTWZ7Akzj0exzsV8l7dSgBbqj1VaezKg_MsRWZTf2fiEl5bGjL6Kg.webp" },
+      { name: "작은 케이크들개", img: "https://i.namu.wiki/i/0SWeXgu9y73Tm0dUHyQrSffCuWOv681ACEFrSLwTlSuWm7wC81r8kI_jl2oRL43tAGXa6Rs165zJNLPawtGudg.webp" },
+      { name: "꼬마북", img: "https://i.namu.wiki/i/hltcwWCVOdKcHpMNGO25w1fa2S2x00XW0CxFak1lzXIXKcRpr4wVa1i5__RYhsaS3IClpPCj1caVOfqFm9Sbcw.webp" },
+      { name: "앵무할아범", img: "https://i.namu.wiki/i/0kUBI6TaO2-yXPipQlHBfqElcvoTUyvmWDbT9FPXOsQr8auKJcoB1xDIFabkGGJ8peUTq7n1P7Uu9fpXcwLAAg.webp" },
+      { name: "말랑 에그버니", img: "https://i.namu.wiki/i/7t4_HxsflAep2NB5bTanLSzqAm2peKLiRvPFCTPbJ5RNBdF_HJilqy7hKGkdqqYPBTJ3j06MwY7RGOII9VZNwA.png" },
+      { name: "초코 왕방울", img: "https://i.namu.wiki/i/Lq5tyKB2BJHl7t8R3Qhe-mCruy-064chqLIt3sXDe_DAWCDiCOZSkkvC0ienfWb0-GbBSdRXvwRMNL-QLDwJ-g.webp" },
+      { name: "방울방울 콩콩", img: "https://i.namu.wiki/i/wcK6I7Pr-rgp6DLzBMeD8Fz3YfnjTnKIvan_TYsru5bSijanZOmlIwFbSQwcEMvBI7FfIzrAfWIn9Ck-U8ikcA.webp" },
+    
+    ];
+
+    let rerollCount = 3;
+    let swapCount = 1;
+    let mainCookie = null;
+    let relayCookie = null;
+    let pet = null;
+
+    let hasPickedMain = false;
+    let hasPickedRelay = false;
+    let hasPickedPet = false;
+
+    function initializeTickets() {
+      const rerollInput = document.getElementById("initialReroll").value;
+      const swapInput = document.getElementById("initialSwap").value;
+      rerollCount = parseInt(rerollInput) || 0;
+      swapCount = parseInt(swapInput) || 0;
+      updateRerollDisplay();
+      hasPickedMain = false;
+      hasPickedRelay = false;
+      hasPickedPet = false;
+    }
+
+    function updateRerollDisplay() {
+      document.getElementById("rerollCount").innerText = rerollCount;
+      document.getElementById("swapCount").innerText = swapCount;
+    }
+
+    function useReroll() {
+      if (rerollCount <= 0) {
+        alert("리롤권이 없습니다!");
+        return false;
+      }
+      rerollCount--;
+      updateRerollDisplay();
+      return true;
+    }
+
+    function randomPick(list, exclude) {
+      let filtered = list;
+      if (exclude) filtered = list.filter(item => item.name !== exclude.name);
+      return filtered[Math.floor(Math.random() * filtered.length)];
+    }
+
+    function pickMain() {
+      if (hasPickedMain && !useReroll()) return;
+      mainCookie = randomPick(cookies, relayCookie);
+      document.getElementById("mainResult").innerHTML = `선달 쿠키: <strong>${mainCookie.name}</strong><br><img id="mainImg" src="${mainCookie.img}">`;
+      hasPickedMain = true;
+    }
+
+    function pickRelay() {
+      if (hasPickedRelay && !useReroll()) return;
+      relayCookie = randomPick(cookies, mainCookie);
+      document.getElementById("relayResult").innerHTML = `이달 쿠키: <strong>${relayCookie.name}</strong><br><img id="relayImg" src="${relayCookie.img}">`;
+      hasPickedRelay = true;
+    }
+
+    function pickPet() {
+      if (hasPickedPet && !useReroll()) return;
+      pet = randomPick(pets);
+      document.getElementById("petResult").innerHTML = `펫: <strong>${pet.name}</strong><br><img id="petImg" src="${pet.img}">`;
+      hasPickedPet = true;
+    }
+
+    function swapCookies() {
+      if (!mainCookie || !relayCookie) {
+        alert("선달과 이달 쿠키가 모두 뽑힌 후에만 교체 가능합니다.");
+        return;
+      }
+      if (swapCount <= 0) {
+        alert("교체권이 없습니다!");
+        return;
+      }
+      [mainCookie, relayCookie] = [relayCookie, mainCookie];
+      swapCount--;
+      updateRerollDisplay();
+      document.getElementById("mainResult").innerHTML = `선달 쿠키: <strong>${mainCookie.name}</strong><br><img id="mainImg" src="${mainCookie.img}">`;
+      document.getElementById("relayResult").innerHTML = `이달 쿠키: <strong>${relayCookie.name}</strong><br><img id="relayImg" src="${relayCookie.img}">`;
+    }
+  </script>
+</body>
+</html>
